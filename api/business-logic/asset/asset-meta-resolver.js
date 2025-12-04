@@ -18,8 +18,14 @@ const xlmMeta = {
  * @internal
  */
 async function checkBlockedDomains(network, domains) {
+    const filter = [...domains]
+    for (let domain of domains) {
+        for (const tld of retrieveTopLevelDomains(domain)) {
+            filter.push(tld)
+        }
+    }
     const res = await db[network].collection('blocked_domains')
-        .find({_id: {$in: domains}})
+        .find({_id: {$in: filter}})
         .project({_id: 1})
         .toArray()
     return res.map(v => v._id)
@@ -34,7 +40,10 @@ async function checkBlockedDomains(network, domains) {
  */
 async function checkIssuersWarnings(network, issuers) {
     return await db[network].collection('directory')
-        .find({_id: {$in: issuers}, tags: {$in: ['malicious', 'unsafe']}}) //search only for accounts with 'malicious' and 'unsafe' tags
+        .find({
+            _id: {$in: issuers},
+            tags: {$in: ['malicious', 'unsafe']}
+        }) //search only for accounts with 'malicious' and 'unsafe' tags
         .project({_id: 1})
         .toArray()
 }
@@ -93,10 +102,13 @@ async function retrieveAssetsMetadata(network, assets) {
     ])
 
     if (blockedDomains.length) {
-        for (const blockedDomain of blockedDomains) {
-            for (const a of foundAssets) {
-                if (a.domain === blockedDomain || a.unconfirmed_domain === blockedDomain) {
+        const blocked = new Set(blockedDomains)
+        for (const a of foundAssets) {
+            const originalDomain = a.domain || a.unconfirmed_domain
+            for (let domain of [originalDomain, ...retrieveTopLevelDomains(originalDomain)]) {
+                if (blocked.has(domain)) {
                     a.unsafe = true
+                    break
                 }
             }
         }
@@ -112,6 +124,22 @@ async function retrieveAssetsMetadata(network, assets) {
         }
     }
     return foundAssets
+}
+
+/**
+ * @param {string} domain
+ * @return {string[]}
+ */
+function retrieveTopLevelDomains(domain) {
+    if (typeof domain !== 'string')
+        return []
+    const res = []
+    const parts = domain.split('.')
+    while (parts.length > 2) {
+        parts.shift()
+        res.push(parts.join('.'))
+    }
+    return res
 }
 
 module.exports = {retrieveAssetsMetadata}
