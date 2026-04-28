@@ -1,13 +1,13 @@
 import React, {useCallback, useEffect, useState} from 'react'
+import {useAuth0} from '@auth0/auth0-react'
 import {Button, ButtonGroup, CodeBlock, CopyToClipboard} from '@stellar-expert/ui-framework'
 import config from '../../../app.config.json'
 import ApiPlaygroundParametersView from './api-playground-parameters-view'
 import buildRequestString from './api-request-builder'
-import {instanceOf} from 'prop-types'
 
 export default function ApiPlaygroundView({path, data = {}}) {
     const {parameters: params} = data
-    const [isAuth, setIsAuth] = useState(true)
+    const {isAuthenticated, loginWithPopup, logout: auth0Logout, getAccessTokenSilently} = useAuth0()
     const [inProgress, setInProgress] = useState(false)
     const [requestParams, setRequestParams] = useState()
     const [response, setResponse] = useState('')
@@ -27,13 +27,24 @@ export default function ApiPlaygroundView({path, data = {}}) {
         setRequestParams(requestParamsDefault)
     }, [params])
 
-    const authorize = useCallback(() => {
-        setIsAuth(true)
+    const authorize = useCallback(async () => {
+        await loginWithPopup()
     }, [])
 
-    const onSend = useCallback(() => {
+    const logout = useCallback(async () => {
+        await auth0Logout({
+            openUrl: false
+        })
+    }, [auth0Logout])
+
+    const onSend = useCallback(async () => {
         setInProgress(true)
-        fetch(config.apiEndpoint + requestString)
+        const token = await getAccessTokenSilently()
+        fetch(config.apiEndpoint + requestString, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
             .then(r => {
                 return typeof r === 'object' ? r.json() : {error: 'Unable to get a response'}
             })
@@ -51,10 +62,11 @@ export default function ApiPlaygroundView({path, data = {}}) {
     return <div>
         <div className="dual-layout">
             <h3>Run API request</h3>
-            <a href="#" className="micro-space" onClick={authorize}>Log in/Sign Up</a>
+            {!isAuthenticated ? <a href="#" className="micro-space" onClick={authorize}>Log in/Sign Up</a> :
+                <a href="#" className="micro-space" onClick={logout}>Log out</a>}
         </div>
         <hr/>
-        {isAuth && <div className="space">
+        {isAuthenticated && <div className="space">
             {params && <ApiPlaygroundParametersView params={params} updateRequestParam={setRequestParams}/>}
             <CodeBlock className="space">{requestString}</CodeBlock>
             <ButtonGroup inline>
