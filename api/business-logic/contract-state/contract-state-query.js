@@ -12,7 +12,7 @@ const errors = require('../errors')
  * @param {String} basePath
  * @param {String} owner
  * @param {String} cursor
- * @param {String} durability
+ * @param {String|String[]} durability - Single label or array of labels
  * @param {Number} limit
  * @param {'asc'|'desc'} order
  * @return {Promise<MultiRows>}
@@ -20,8 +20,11 @@ const errors = require('../errors')
 async function queryContractState(network, basePath, owner, {cursor, durability, limit, order}) {
     validateNetwork(network)
     validateAccountOrContractAddress(owner)
-    if (durability && !['instance', 'persistent', 'temporary'].includes(durability))
-        throw errors.validationError('durability', `Invalid durability: "${durability}".`)
+    //durability accepts a single label (?durability=persistent) or an array (?durability[]=persistent&durability[]=instance)
+    const durabilities = [].concat(durability ?? []).filter(Boolean)
+    for (const d of durabilities)
+        if (!['instance', 'persistent', 'temporary'].includes(d))
+            throw errors.validationError('durability', `Invalid durability: "${d}".`)
     limit = normalizeLimit(limit)
     const parsedOrder = normalizeOrder(order, 1)
     //TODO: remove the following code when the db catches up with evictions
@@ -30,8 +33,8 @@ async function queryContractState(network, basePath, owner, {cursor, durability,
         projection: {_id: 1}
     })
     const filter = [{term: {owner}}]
-    if (durability) {
-        filter.push({term: {durability}})
+    if (durabilities.length) {
+        filter.push({terms: {durability: durabilities}})
     }
     if (cursor) {
         filter.push({
