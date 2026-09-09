@@ -2,9 +2,13 @@ import React, {useCallback, useState} from 'react'
 import {Button} from '@stellar-expert/ui-framework'
 import {apiRequest} from '../../../business-logic/billing/billing-api'
 import {signOut} from '../../../business-logic/billing/billing-session'
-import SimplePageLayout from '../layout/simple-page-layout'
 import {useSession} from './auth-session'
+import {AuthScreenView} from './auth-form'
 
+/**
+ * Replaces the dashboard while an account is soft-deleted, offering to bring it back
+ * @return {JSX.Element}
+ */
 export default function AccountRestoreView() {
     const {userId, reload} = useSession()
     const [isProgress, setIsProgress] = useState(false)
@@ -25,27 +29,19 @@ export default function AccountRestoreView() {
         signOut()
     }, [])
 
-    return <div className="container">
-        <div className="row micro-space">
-            <div className="column column-50 column-offset-25">
-                <SimplePageLayout title="Account deleted" center>
-                    <div>
-                        This account has been deleted. You can restore it right now and keep using the
-                        service with the same email address - the API keys it had start working again.
-                        Credits held at the time of deletion were burned and do not come back.
-                    </div>
-                    <div className="row space">
-                        <div className="column column-50 column-offset-25">
-                            <Button onClick={restore} disabled={isProgress} block>
-                                Restore account
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="text-center micro-space">
-                        <a href="#" onClick={logOut} className="text-small">Log out</a>
-                    </div>
-                </SimplePageLayout>
-            </div>
+    return <AuthScreenView title="Account deleted" textFirst>
+        <p>
+            This account has been deleted. You can restore it right now and keep using the service with
+            the same email address - the API keys it had start working again.
+        </p>
+        <p>
+            Credits held at the time of deletion were burned and do not come back.
+        </p>
+        <div className="space">
+            <Button onClick={restore} disabled={isProgress} block>Restore account</Button>
         </div>
-    </div>
+        <div className="text-center micro-space">
+            <a href="#" onClick={logOut} className="text-small">Log out</a>
+        </div>
+    </AuthScreenView>
 }

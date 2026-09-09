@@ -13,7 +13,7 @@ export default function ResetPasswordView() {
     const submit = useCallback(async password => {
         await completePasswordReset({token, password})
         notify({type: 'success', message: 'Your password has been changed'})
-        navigation.history.push('/account')
+        navigation.navigate('/account')
     }, [token])
 
     if (!token)

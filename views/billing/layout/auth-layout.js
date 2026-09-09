@@ -2,6 +2,7 @@ import React from 'react'
 import {isSignedIn} from '../../../business-logic/billing/billing-session'
 import {isImpersonating} from '../../../business-logic/billing/impersonation'
 import {useSession} from '../auth/auth-session'
+import {AuthScreenView} from '../auth/auth-form'
 import LoginFormView from '../auth/login-form-view'
 import AccountRestoreView from '../auth/account-restore-view'
 import SetPasswordView from '../auth/set-password-view'
@@ -27,7 +28,7 @@ export default function AuthLayout({role, children}) {
     if (userSession.inactive)
         return <AccountRestoreView/>
     if (!isAllowed)
-        return <LoginFormView/>
+        return <NoAccessView/>
     //show content
     return children
 }
@@ -40,5 +41,21 @@ export default function AuthLayout({role, children}) {
  * @private
  */
 function hasRole(role, {roles}) {
-    return (roles?.length ? roles : ['user']).includes(role)
+    const granted = roles?.length ? roles : ['user']
+    //an admin reaches the customer dashboard too, the way the API grants them any account
+    return granted.includes(role) || (role === 'user' && granted.includes('admin'))
+}
+
+/**
+ * Shown to a signed-in session whose roles do not cover this dashboard
+ * @return {JSX.Element}
+ * @private
+ */
+function NoAccessView() {
+    return <AuthScreenView title="No access" textFirst>
+        <p className="dimmed text-small">
+            This account cannot open this dashboard. Go to <a href="/account">your account</a>, or
+            sign in with one that has access.
+        </p>
+    </AuthScreenView>
 }

@@ -1086,6 +1086,11 @@ $plan-amount-line-height: 1.1;
   align-items: center;
   justify-content: center;
 
+  //the framework justifies every paragraph, which gaps badly in a column this narrow
+  p {
+    text-align: left;
+  }
+
   .billing-login-form {
     width: 100%;
     max-width: 30em;

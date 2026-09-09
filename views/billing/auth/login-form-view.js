@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react'
+import React, {useCallback, useEffect, useState} from 'react'
 import {Button, navigation} from '@stellar-expert/ui-framework'
 import {getRoles, isSignedIn, logIn, requestPasswordReset, signUp}
     from '../../../business-logic/billing/billing-session'
@@ -70,7 +70,7 @@ export default function LoginFormView() {
         try {
             await (isSignUp ? signUp : logIn)({email, password})
             const isAdmin = getRoles().includes('admin')
-            navigation.history.push(isAdmin ? '/admin' : '/account')
+            navigation.navigate(isAdmin ? '/admin' : '/account')
         } catch (e) {
             fail(e.message || 'Something went wrong. Please try again.')
         } finally {
@@ -78,10 +78,15 @@ export default function LoginFormView() {
         }
     }, [email, password, repeated, screen, isReset, isSignUp, sendResetLink])
 
-    if (isSignedIn()) {
-        navigation.history.push('/account')
+    //nothing to sign in to - the dashboard is already reachable
+    useEffect(() => {
+        if (isSignedIn()) {
+            navigation.navigate('/account')
+        }
+    }, [])
+
+    if (isSignedIn())
         return null
-    }
 
     return <AuthScreenView title={screens[screen].title} textFirst={screens[screen].textFirst}>
         {screen === 'sent' ?
